@@ -37,6 +37,21 @@ begin
   Entity := ORM.GetInstance<I[TableName]>(PKValue);
 ```
 
+In addition to access to the table fields, the entity class also implements methods from the interface:
+
+```
+  ItransfORMEntity = interface(IInvokable)
+    function GetConnection(): TFDConnection;
+    function GetImmediateCommit(): Boolean;
+    function HasChanges() : Boolean;
+    procedure Commit(aInSubthread : Boolean = False);
+    procedure SetImmediateCommit(const aValue: Boolean);
+    property ImmediateCommit: Boolean read GetImmediateCommit write SetImmediateCommit;
+    property Connection: TFDConnection read GetConnection;
+  end;
+```
+
+
 Current limitations:
 - primary key can only be simple and of an integer type
 - cannot be downloaded other than via a primary key
