@@ -38,7 +38,7 @@ begin
 ```
 
 Current limitations:
-- keys can only be simple and of an integer type
+- primary key can only be simple and of an integer type
 - cannot be downloaded other than via a primary key
 
 
