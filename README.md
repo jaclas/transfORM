@@ -43,9 +43,9 @@ In addition to access to the table fields, the entity class also implements meth
   ItransfORMEntity = interface(IInvokable)
     function GetConnection(): TFDConnection;
     function GetImmediateCommit(): Boolean;
+    procedure SetImmediateCommit(const aValue: Boolean);
     function HasChanges() : Boolean;
     procedure Commit(aInSubthread : Boolean = False);
-    procedure SetImmediateCommit(const aValue: Boolean);
     property ImmediateCommit: Boolean read GetImmediateCommit write SetImmediateCommit;
     property Connection: TFDConnection read GetConnection;
   end;
