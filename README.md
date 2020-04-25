@@ -34,7 +34,7 @@ var
   PKValue : Integer;
 begin
   PKValue := 100; //primary key value
-  Entity := ORM.GetInstance<I[TableName]>(PKValue);
+  Entity := ORM.GetInstance<I[TableName], PKType>(PKValue, FDConnection);
 ```
 
 In addition to access to the table fields, the entity class also implements methods from the interface:
@@ -53,8 +53,8 @@ In addition to access to the table fields, the entity class also implements meth
 
 
 Current limitations:
-- primary key can only be simple and of an integer type
-- cannot be downloaded other than via a primary key
+- primary key can only be simple key (based on one column)
+- data cannot be readed other than via a primary key (e.g. not by a WHERE clause)
 
 
 The library uses: Spring4D, FireDAC
