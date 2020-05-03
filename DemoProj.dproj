@@ -86,7 +86,10 @@
             <Form>frmMain</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="refORM.pas"/>
+        <DCCReference Include="transfORM.Main.pas"/>
+        <DCCReference Include="refORM.Impl.pas"/>
+        <DCCReference Include="transfORM.DB.pas"/>
+        <DCCReference Include="transfORM.Entity.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

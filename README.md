@@ -4,13 +4,12 @@ mini ORM for Delphi
 
 The library is an experiment with RTTI and generics to gain simple, object-oriented access to data from a relational database.
 
-Configuration consists of passing the connection to the database, either by a configured TFDConnection, or by a registered FireDAC Connection Definition Name.
 
 ```
 var
   ORM : TransfORM;
 begin  
-  ORM := TransfORM.Create('SERVICE_DB_CONNDEF');
+  ORM := TransfORM.Create();
 ```
 
 The second step is to define the interface according to the formula:
@@ -34,7 +33,7 @@ var
   PKValue : Integer;
 begin
   PKValue := 100; //primary key value
-  Entity := ORM.GetInstance<I[TableName], PKType>(PKValue, FDConnection);
+  Entity := ORM.GetInstance<I[TableName], [PKType]>(PKValue, FDConnection);
 ```
 
 In addition to access to the table fields, the entity class also implements methods from the interface:
@@ -43,9 +42,10 @@ In addition to access to the table fields, the entity class also implements meth
   ItransfORMEntity = interface(IInvokable)
     function GetConnection(): TFDConnection;
     function GetImmediateCommit(): Boolean;
-    procedure SetImmediateCommit(const aValue: Boolean);
     function HasChanges() : Boolean;
+    function PrimaryKeyField() : TransfORMField;
     procedure Commit(aInSubthread : Boolean = False);
+    procedure SetImmediateCommit(const aValue: Boolean);
     property ImmediateCommit: Boolean read GetImmediateCommit write SetImmediateCommit;
     property Connection: TFDConnection read GetConnection;
   end;

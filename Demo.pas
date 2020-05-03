@@ -3,7 +3,7 @@
 interface
 
 uses
-  refORM,
+  transfORM.Main,
 
   Data.DB,
 
@@ -34,16 +34,16 @@ uses
   Winapi.Messages,
   Winapi.Windows, Vcl.Grids, Vcl.DBGrids, FireDAC.Stan.Param, FireDAC.DatS,
   FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, Vcl.StdCtrls,
-  Vcl.Buttons;
+  Vcl.Buttons, Vcl.ComCtrls;
 
 type
   TfrmMain = class(TForm)
     conSQLite: TFDConnection;
     dbgrdData: TDBGrid;
     fdqryData: TFDQuery;
-    metaqryInfo: TFDMetaInfoQuery;
+    metaqryTables: TFDMetaInfoQuery;
     dtsrcData: TDataSource;
-    dtsrcInfo: TDataSource;
+    dtsrcTables: TDataSource;
     dbgrdInfo: TDBGrid;
     mmoCode: TMemo;
     btnTest: TBitBtn;
@@ -51,28 +51,44 @@ type
     dtsrcFields: TDataSource;
     dbgrdFields: TDBGrid;
     btnGenerate: TBitBtn;
+    pgcMain: TPageControl;
+    tsMeta: TTabSheet;
+    tsData: TTabSheet;
+    tsCode: TTabSheet;
+    dbgrd2: TDBGrid;
+    dtsrcPK: TDataSource;
+    metaqryPK: TFDMetaInfoQuery;
+    edtDB: TEdit;
+    btnConnect: TBitBtn;
+    procedure btnConnectClick(Sender: TObject);
     procedure btnGenerateClick(Sender: TObject);
     procedure btnTestClick(Sender: TObject);
-    procedure FormShow(Sender: TObject);
-    procedure metaqryInfoAfterScroll(DataSet: TDataSet);
+    procedure metaqryTablesAfterScroll(DataSet: TDataSet);
   private
     flTableName: string;
   protected
     function GenerateCode(): string;
   end;
 
-  ICustomers = interface(ItransfORMEntity)
-    function CustomerID(): TransfORMField;
-    function CompanyName(): TransfORMField;
-    function ContactName(): TransfORMField;
-    function ContactTitle(): TransfORMField;
+  IEmployees = interface(ItransfORMEntity)
+    function EmployeeID(): TransfORMField;
+    function LastName(): TransfORMField;
+    function FirstName(): TransfORMField;
+    function Title(): TransfORMField;
+    function TitleOfCourtesy(): TransfORMField;
+    function BirthDate(): TransfORMField;
+    function HireDate(): TransfORMField;
     function Address(): TransfORMField;
     function City(): TransfORMField;
     function Region(): TransfORMField;
     function PostalCode(): TransfORMField;
     function Country(): TransfORMField;
-    function Phone(): TransfORMField;
-    function Fax(): TransfORMField;
+    function HomePhone(): TransfORMField;
+    function Extension(): TransfORMField;
+    function Photo(): TransfORMField;
+    function Notes(): TransfORMField;
+    function ReportsTo(): TransfORMField;
+    function PhotoPath(): TransfORMField;
   end;
 
 var
@@ -154,6 +170,12 @@ begin
   fData := aValue;
 end;
 
+procedure TfrmMain.btnConnectClick(Sender: TObject);
+begin
+  conSQLite.Params.Database := edtDB.Text;
+  metaqryTables.Open;
+end;
+
 procedure TfrmMain.btnGenerateClick(Sender: TObject);
 begin
   mmoCode.Lines.Text := GenerateCode();
@@ -162,26 +184,31 @@ end;
 procedure TfrmMain.btnTestClick(Sender: TObject);
 var
   b: Boolean;
-  lORM : TransfORM;
+  lORM : TTransfORM;
   i: Integer;
   s: string;
-  lCustomer: ICustomers;
+  Employee: IEmployees;
 begin
-  lORM := TransfORM.Create();
-  lCustomer := lORM.GetInstance<ICustomers, string>('BOLID', conSQLite);
-  s := lCustomer.CustomerID.Value;
-  s := lCustomer.ContactTitle.Value;
-  s := lCustomer.CompanyName.Value;
-  lCustomer.ImmediateCommit := False;
-  lCustomer.CompanyName.Value := 'Embarcadero';
-  b := lCustomer.HasChanges;
-  lCustomer.Commit();
-  b := lCustomer.HasChanges;
-end;
+  lORM := TTransfORM.Create();
+  Employee := lORM.NewInstance<IEmployees, Integer>(conSQLite);
+  Employee.ImmediateCommit := False;
+  Employee.FirstName.Value := 'Józef';
+  Employee.LastName.Value := 'Pampkin';
+  Employee.City.Value := 'Miasteczko';
+  Employee.Country.Value := 'Polska';
+  Employee.Commit();
+  Employee.Region.Value := 'Podkarpackie';
+  Employee.Commit();
 
-procedure TfrmMain.FormShow(Sender: TObject);
-begin
-  metaqryInfo.Open;
+  Employee := lORM.GetInstance<IEmployees, Integer>(3, conSQLite);
+  i := Employee.EmployeeID.Value;
+  s := Employee.Country.Value;
+  s := Employee.City.Value;
+  Employee.ImmediateCommit := False;
+  Employee.LastName.Value := Employee.LastName.Value + '_test';
+  b := Employee.HasChanges;
+  Employee.Commit();
+  b := Employee.HasChanges;
 end;
 
 function TfrmMain.GenerateCode(): string;
@@ -189,7 +216,7 @@ const
   cIntf = '  I%s = interface(ItransfORMEntity)' + sLineBreak +
           '%s' + sLineBreak +
           '  end;';
-  cMeth = '    function %s(): TransfORMField;';
+  cMeth = '    function %s(): TransfORMField; //type %s';
 var
   s: string;
 
@@ -200,7 +227,7 @@ begin
   metaqryFields.First;
   while not metaqryFields.Eof do
   begin
-    s := s + Format(cMeth, [metaqryFields.FieldByName('COLUMN_NAME').AsString]);
+    s := s + Format(cMeth, [metaqryFields.FieldByName('COLUMN_NAME').AsString, metaqryFields.FieldByName('COLUMN_TYPENAME').AsString]);
     metaqryFields.Next;
     if not metaqryFields.Eof then
     begin
@@ -213,17 +240,44 @@ begin
   end;
 end;
 
-procedure TfrmMain.metaqryInfoAfterScroll(DataSet: TDataSet);
+procedure TfrmMain.metaqryTablesAfterScroll(DataSet: TDataSet);
+
+  procedure ConfGrid(dbGrid : TDBGrid);
+  var
+    i : Integer;
+  begin
+    for i := 0 to Pred(dbGrid.Columns.Count) do
+    begin
+      dbGrid.Columns[i].Width := 150;
+    end;
+  end;
+
 begin
   fdqryData.Close;
-  flTableName := metaqryInfo.FieldByName('TABLE_NAME').AsString;
+  flTableName := metaqryTables.FieldByName('TABLE_NAME').AsString;
   fdqryData.MacroByName('TableName').AsRaw := flTableName;
   fdqryData.Open;
+
   metaqryFields.Close;
+  metaqryFields.BaseObjectName := flTableName;
   metaqryFields.ObjectName := flTableName;
   metaqryFields.Open;
-end;
 
+  metaqryPK.Close;
+  metaqryPK.BaseObjectName := flTableName;
+  metaqryPK.ObjectName := flTableName;
+  metaqryPK.Open;
+
+  ConfGrid(dbgrd2);
+//  FireDAC.Stan.Intf.TFDDataAttributes
+// COLUMN_ATTRIBUTES z fieldów
+//
+//  TFDDataAttribute = (caSearchable, caAllowNull, caFixedLen,
+//    caBlobData, caReadOnly, caAutoInc, caROWID, caDefault,
+//    caRowVersion, caInternal, caCalculated, caVolatile, caUnnamed,
+//    caVirtual, caBase, caExpr);
+//  TFDDataAttributes = set of TFDDataAttribute;
+end;
 
 end.
 

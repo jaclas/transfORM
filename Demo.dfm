@@ -3,7 +3,7 @@ object frmMain: TfrmMain
   Top = 0
   Caption = 'transfORM Demo'
   ClientHeight = 629
-  ClientWidth = 727
+  ClientWidth = 726
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,34 +11,22 @@ object frmMain: TfrmMain
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
-  OnShow = FormShow
   DesignSize = (
-    727
+    726
     629)
   PixelsPerInch = 96
   TextHeight = 13
-  object dbgrdData: TDBGrid
-    Left = 2
-    Top = 393
-    Width = 771
-    Height = 234
-    Anchors = [akLeft, akTop, akRight]
-    DataSource = dtsrcData
-    TabOrder = 5
-    TitleFont.Charset = DEFAULT_CHARSET
-    TitleFont.Color = clWindowText
-    TitleFont.Height = -11
-    TitleFont.Name = 'Tahoma'
-    TitleFont.Style = []
-  end
   object dbgrdInfo: TDBGrid
-    Left = 2
-    Top = 42
-    Width = 339
+    AlignWithMargins = True
+    Left = 3
+    Top = 30
+    Width = 720
     Height = 115
-    DataSource = dtsrcInfo
+    Margins.Top = 30
+    Align = alTop
+    DataSource = dtsrcTables
     Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgTitleClick, dgTitleHotTrack]
-    TabOrder = 2
+    TabOrder = 4
     TitleFont.Charset = DEFAULT_CHARSET
     TitleFont.Color = clWindowText
     TitleFont.Height = -11
@@ -52,65 +40,183 @@ object frmMain: TfrmMain
         Visible = True
       end>
   end
-  object mmoCode: TMemo
-    Left = 343
-    Top = 60
-    Width = 382
-    Height = 327
-    Anchors = [akLeft, akTop, akRight, akBottom]
-    Lines.Strings = (
-      'mmoCode')
-    TabOrder = 3
-  end
   object btnTest: TBitBtn
-    Left = 650
-    Top = 33
+    Left = 648
+    Top = 3
     Width = 75
     Height = 25
+    Anchors = [akTop, akRight]
     Caption = 'Test'
-    TabOrder = 1
+    TabOrder = 2
     OnClick = btnTestClick
   end
-  object dbgrdFields: TDBGrid
-    Left = 2
-    Top = 163
-    Width = 339
-    Height = 228
-    DataSource = dtsrcFields
-    Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgConfirmDelete, dgCancelOnExit, dgTitleClick, dgTitleHotTrack]
-    TabOrder = 4
-    TitleFont.Charset = DEFAULT_CHARSET
-    TitleFont.Color = clWindowText
-    TitleFont.Height = -11
-    TitleFont.Name = 'Tahoma'
-    TitleFont.Style = []
-    Columns = <
-      item
-        Expanded = False
-        FieldName = 'COLUMN_NAME'
-        Width = 122
-        Visible = True
-      end
-      item
-        Expanded = False
-        FieldName = 'COLUMN_TYPENAME'
-        Width = 104
-        Visible = True
-      end
-      item
-        Expanded = False
-        FieldName = 'COLUMN_LENGTH'
-        Visible = True
-      end>
-  end
   object btnGenerate: TBitBtn
-    Left = 552
-    Top = 33
+    Left = 553
+    Top = 3
     Width = 89
     Height = 25
+    Anchors = [akTop, akRight]
     Caption = 'Generate code'
-    TabOrder = 0
+    TabOrder = 1
     OnClick = btnGenerateClick
+  end
+  object pgcMain: TPageControl
+    Left = 0
+    Top = 148
+    Width = 726
+    Height = 481
+    ActivePage = tsMeta
+    Align = alClient
+    TabOrder = 5
+    ExplicitLeft = 2
+    ExplicitTop = 192
+    ExplicitWidth = 697
+    ExplicitHeight = 409
+    object tsMeta: TTabSheet
+      Caption = 'Meta'
+      ExplicitWidth = 281
+      ExplicitHeight = 165
+      DesignSize = (
+        718
+        453)
+      object dbgrdFields: TDBGrid
+        Left = 2
+        Top = 3
+        Width = 713
+        Height = 360
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        DataSource = dtsrcFields
+        Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgConfirmDelete, dgCancelOnExit, dgTitleClick, dgTitleHotTrack]
+        TabOrder = 0
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -11
+        TitleFont.Name = 'Tahoma'
+        TitleFont.Style = []
+        Columns = <
+          item
+            Expanded = False
+            FieldName = 'COLUMN_NAME'
+            Width = 122
+            Visible = True
+          end
+          item
+            Expanded = False
+            FieldName = 'COLUMN_TYPENAME'
+            Width = 104
+            Visible = True
+          end
+          item
+            Expanded = False
+            FieldName = 'COLUMN_LENGTH'
+            Visible = True
+          end>
+      end
+      object dbgrd2: TDBGrid
+        Left = 2
+        Top = 367
+        Width = 713
+        Height = 83
+        Anchors = [akLeft, akRight, akBottom]
+        DataSource = dtsrcPK
+        TabOrder = 1
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -11
+        TitleFont.Name = 'Tahoma'
+        TitleFont.Style = []
+        Columns = <
+          item
+            Expanded = False
+            FieldName = 'TABLE_NAME'
+            Width = 150
+            Visible = True
+          end
+          item
+            Expanded = False
+            FieldName = 'INDEX_NAME'
+            Width = 150
+            Visible = True
+          end
+          item
+            Expanded = False
+            FieldName = 'COLUMN_NAME'
+            Width = 140
+            Visible = True
+          end
+          item
+            Expanded = False
+            FieldName = 'COLUMN_POSITION'
+            Visible = True
+          end
+          item
+            Expanded = False
+            FieldName = 'SORT_ORDER'
+            Width = 120
+            Visible = True
+          end>
+      end
+    end
+    object tsData: TTabSheet
+      Caption = 'Data'
+      ImageIndex = 1
+      ExplicitWidth = 281
+      ExplicitHeight = 165
+      object dbgrdData: TDBGrid
+        AlignWithMargins = True
+        Left = 3
+        Top = 3
+        Width = 712
+        Height = 447
+        Align = alClient
+        DataSource = dtsrcData
+        TabOrder = 0
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -11
+        TitleFont.Name = 'Tahoma'
+        TitleFont.Style = []
+      end
+    end
+    object tsCode: TTabSheet
+      Caption = 'Code'
+      ImageIndex = 2
+      ExplicitWidth = 689
+      ExplicitHeight = 381
+      object mmoCode: TMemo
+        AlignWithMargins = True
+        Left = 3
+        Top = 3
+        Width = 712
+        Height = 447
+        Align = alClient
+        TabOrder = 0
+        ExplicitLeft = 307
+        ExplicitTop = 54
+        ExplicitWidth = 382
+        ExplicitHeight = 327
+      end
+    end
+  end
+  object edtDB: TEdit
+    Left = 4
+    Top = 5
+    Width = 419
+    Height = 21
+    TabOrder = 3
+    Text = 
+      'C:\Users\Public\Documents\Embarcadero\Studio\20.0\Samples\data\F' +
+      'DDemo.sdb'
+  end
+  object btnConnect: TBitBtn
+    Left = 472
+    Top = 3
+    Width = 75
+    Height = 25
+    Anchors = [akTop, akRight]
+    Caption = 'Connect'
+    TabOrder = 0
+    OnClick = btnConnectClick
   end
   object conSQLite: TFDConnection
     Params.Strings = (
@@ -118,41 +224,39 @@ object frmMain: TfrmMain
     ConnectedStoredUsage = []
     Connected = True
     LoginPrompt = False
-    Left = 40
-    Top = 42
+    Left = 98
+    Top = 18
   end
   object fdqryData: TFDQuery
     Connection = conSQLite
     SQL.Strings = (
       'select * from &TableName')
-    Left = 354
-    Top = 314
+    Left = 532
+    Top = 270
     MacroData = <
       item
-        Value = Null
+        Value = ''
         Name = 'TABLENAME'
         DataType = mdIdentifier
       end>
   end
-  object metaqryInfo: TFDMetaInfoQuery
-    Active = True
-    AfterScroll = metaqryInfoAfterScroll
+  object metaqryTables: TFDMetaInfoQuery
+    AfterScroll = metaqryTablesAfterScroll
     Connection = conSQLite
-    Left = 290
-    Top = 40
+    Left = 98
+    Top = 110
   end
   object dtsrcData: TDataSource
     DataSet = fdqryData
-    Left = 366
-    Top = 344
+    Left = 524
+    Top = 322
   end
-  object dtsrcInfo: TDataSource
-    DataSet = metaqryInfo
-    Left = 294
-    Top = 78
+  object dtsrcTables: TDataSource
+    DataSet = metaqryTables
+    Left = 92
+    Top = 182
   end
   object metaqryFields: TFDMetaInfoQuery
-    Active = True
     Filtered = True
     Connection = conSQLite
     MetaInfoKind = mkTableFields
@@ -162,7 +266,22 @@ object frmMain: TfrmMain
   end
   object dtsrcFields: TDataSource
     DataSet = metaqryFields
-    Left = 136
-    Top = 304
+    Left = 122
+    Top = 330
+  end
+  object dtsrcPK: TDataSource
+    DataSet = metaqryPK
+    Left = 394
+    Top = 332
+  end
+  object metaqryPK: TFDMetaInfoQuery
+    Active = True
+    Filtered = True
+    Connection = conSQLite
+    MetaInfoKind = mkPrimaryKeyFields
+    BaseObjectName = 'Categories'
+    ObjectName = 'categories'
+    Left = 392
+    Top = 280
   end
 end
