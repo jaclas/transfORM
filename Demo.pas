@@ -34,7 +34,7 @@ uses
   Winapi.Messages,
   Winapi.Windows, Vcl.Grids, Vcl.DBGrids, FireDAC.Stan.Param, FireDAC.DatS,
   FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, Vcl.StdCtrls,
-  Vcl.Buttons, Vcl.ComCtrls;
+  Vcl.Buttons, Vcl.ComCtrls, Vcl.ExtCtrls;
 
 type
   TfrmMain = class(TForm)
@@ -46,7 +46,7 @@ type
     dtsrcTables: TDataSource;
     dbgrdInfo: TDBGrid;
     mmoCode: TMemo;
-    btnTest: TBitBtn;
+    btnTestA: TBitBtn;
     metaqryFields: TFDMetaInfoQuery;
     dtsrcFields: TDataSource;
     dbgrdFields: TDBGrid;
@@ -60,17 +60,35 @@ type
     metaqryPK: TFDMetaInfoQuery;
     edtDB: TEdit;
     btnConnect: TBitBtn;
+    tsTests: TTabSheet;
+    lbl1: TLabel;
+    spl1: TSplitter;
+    statBar: TStatusBar;
+    tmr1: TTimer;
+    btnTestB: TBitBtn;
+    btnTestC: TBitBtn;
+    mmoLog: TMemo;
     procedure btnConnectClick(Sender: TObject);
     procedure btnGenerateClick(Sender: TObject);
-    procedure btnTestClick(Sender: TObject);
+    procedure btnTestAClick(Sender: TObject);
+    procedure btnTestBClick(Sender: TObject);
+    procedure btnTestCClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure metaqryTablesAfterScroll(DataSet: TDataSet);
+    procedure tmr1Timer(Sender: TObject);
   private
     flTableName: string;
   protected
     function GenerateCode(): string;
+    procedure Log(const aStr : string); overload;
+    procedure Log(const aStr : string; const aArgs : array of const); overload;
+    procedure LogSeparator();
   end;
 
   IEmployees = interface(ItransfORMEntity)
+    /// <summary>
+    ///   INTEGER type field
+    /// </summary>
     function EmployeeID(): TransfORMField;
     function LastName(): TransfORMField;
     function FirstName(): TransfORMField;
@@ -91,84 +109,20 @@ type
     function PhotoPath(): TransfORMField;
   end;
 
+  TFieldTypeHelper = record helper for TFieldType
+    function AsString(): string;
+  end;
 var
   frmMain: TfrmMain;
 
 implementation
 
+uses
+  FastMM4,
+  Spring;
+
 {$R *.dfm}
 
-type
-
-  TVar = record
-  private
-    fData : Variant;
-    fOldData : Variant;
-    fChanged : Boolean;
-  public
-    constructor Create(const aValue : Integer); overload;
-    constructor Create(const aValue : string); overload;
-    function Changed(): Boolean;
-    class operator Implicit(const value: string): TVar;
-    class operator Implicit(const value: Integer): TVar;
-    class operator Implicit(const value: Variant): TVar;
-    class operator Implicit(const value: TVar): string;
-    class operator Implicit(const value: TVar): Integer;
-    class operator Implicit(const value: TVar): Variant;
-  end;
-
-function TVar.Changed(): Boolean;
-begin
-  Result := fChanged;
-end;
-
-class operator TVar.Implicit(const value: TVar): Variant;
-begin
-  Result := value.fData;
-end;
-
-class operator TVar.Implicit(const value: TVar): Integer;
-begin
-  Result := value.fData;
-end;
-
-class operator TVar.Implicit(const value: TVar): string;
-begin
-  Result := value.fData;
-end;
-
-class operator TVar.Implicit(const value: Variant): TVar;
-begin
-  Result.fOldData := Result.fData;
-  Result.fData := value;
-  Result.fChanged := True;
-end;
-
-class operator TVar.Implicit(const value: Integer): TVar;
-begin
-  Result.fOldData := Result.fData;
-  Result.fData := value;
-  Result.fChanged := True;
-end;
-
-class operator TVar.Implicit(const value: string): TVar;
-begin
-  Result.fOldData := Result.fData;
-  Result.fData := value;
-  Result.fChanged := True;
-end;
-
-constructor TVar.Create(const aValue: string);
-begin
-  fChanged := False;
-  fData := aValue;
-end;
-
-constructor TVar.Create(const aValue: Integer);
-begin
-  fChanged := False;
-  fData := aValue;
-end;
 
 procedure TfrmMain.btnConnectClick(Sender: TObject);
 begin
@@ -181,7 +135,65 @@ begin
   mmoCode.Lines.Text := GenerateCode();
 end;
 
-procedure TfrmMain.btnTestClick(Sender: TObject);
+procedure TfrmMain.btnTestAClick(Sender: TObject);
+var
+  lORM : TTransfORM;
+  Employee: IEmployees;
+begin
+  lORM := TTransfORM.Create();
+  try
+  Employee := lORM.GetInstance<IEmployees, Integer>(3, conSQLite);
+  Log('Test A');
+  Log('Employee.EmployeeID: %s => FieldType : %s, variant type: %s', [Employee.EmployeeID.Value,
+                                                              Employee.EmployeeID.DataType.AsString,
+                                                              VarTypeAsText(VarType(Employee.EmployeeID.Value))]);
+  Log('Employee.Country: %s => FieldType : %s, variant type: %s', [Employee.Country.Value,
+                                                                   Employee.Country.DataType.AsString,
+                                                                   VarTypeAsText(VarType(Employee.Country.Value))]);
+
+  Log('Employee.City: %s => FieldType : %s, variant type: %s', [Employee.City.Value,
+                                                                Employee.City.DataType.AsString,
+                                                                VarTypeAsText(VarType(Employee.City.Value))]);
+  LogSeparator();
+  finally
+  lORM.Free;
+  end;
+end;
+
+procedure TfrmMain.btnTestBClick(Sender: TObject);
+var
+  lORM : TTransfORM;
+  Employee: IEmployees;
+begin
+  lORM := TTransfORM.Create();
+  try
+  Employee := lORM.GetInstance<IEmployees, Integer>(3, conSQLite);
+  Log('Test B');
+  Log('Employee ID: %s => FieldType : %s, variant type: %s', [Employee.EmployeeID.Value,
+                                                              Employee.EmployeeID.DataType.AsString,
+                                                              VarTypeAsText(VarType(Employee.EmployeeID.Value))]);
+  Log('Employee.Country: %s => FieldType : %s, variant type: %s', [Employee.Country.Value,
+                                                                   Employee.Country.DataType.AsString,
+                                                                   VarTypeAsText(VarType(Employee.Country.Value))]);
+
+  Log('Employee.City: %s => FieldType : %s, variant type: %s', [Employee.City.Value,
+                                                                Employee.City.DataType.AsString,
+                                                                VarTypeAsText(VarType(Employee.City.Value))]);
+  Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
+
+  Employee.City.Value := Employee.City.Value + Random(1000).ToString;
+
+  Log('Employee City: %s => FieldType : %s, variant type: %s', [Employee.City.Value,
+                                                                Employee.City.DataType.AsString,
+                                                                VarTypeAsText(VarType(Employee.City.Value))]);
+  Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
+  LogSeparator();
+  finally
+  lORM.Free;
+  end;
+end;
+
+procedure TfrmMain.btnTestCClick(Sender: TObject);
 var
   b: Boolean;
   lORM : TTransfORM;
@@ -190,25 +202,73 @@ var
   Employee: IEmployees;
 begin
   lORM := TTransfORM.Create();
+  try
   Employee := lORM.NewInstance<IEmployees, Integer>(conSQLite);
-  Employee.ImmediateCommit := False;
   Employee.FirstName.Value := 'Józef';
   Employee.LastName.Value := 'Pampkin';
   Employee.City.Value := 'Miasteczko';
+  Employee.Region.Value := 'Mazowieckie';
   Employee.Country.Value := 'Polska';
+  Log('Test C');
+  Log('Employee ID: %s => FieldType : %s, variant type: %s', [Employee.EmployeeID.Value,
+                                                              Employee.EmployeeID.DataType.AsString,
+                                                              VarTypeAsText(VarType(Employee.EmployeeID.Value))]);
+  Log('Employee.FirstName: %s => FieldType : %s, variant type: %s', [Employee.FirstName.Value,
+                                                                     Employee.FirstName.DataType.AsString,
+                                                                     VarTypeAsText(VarType(Employee.FirstName.Value))]);
+  Log('Employee.LastName: %s => FieldType : %s, variant type: %s', [Employee.LastName.Value,
+                                                                    Employee.LastName.DataType.AsString,
+                                                                    VarTypeAsText(VarType(Employee.LastName.Value))]);
+  Log('Employee.Country: %s => FieldType : %s, variant type: %s', [Employee.Country.Value,
+                                                                   Employee.Country.DataType.AsString,
+                                                                   VarTypeAsText(VarType(Employee.Country.Value))]);
+  Log('Employee.Region: %s => FieldType : %s, variant type: %s', [Employee.Region.Value,
+                                                                  Employee.Region.DataType.AsString,
+                                                                  VarTypeAsText(VarType(Employee.Region.Value))]);
+  Log('Employee.City: %s => FieldType : %s, variant type: %s', [Employee.City.Value,
+                                                                Employee.City.DataType.AsString,
+                                                                VarTypeAsText(VarType(Employee.City.Value))]);
+  Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
+
+  Employee.City.Value := Employee.City.Value + Random(1000).ToString;
+
+  Log('Employee City: %s => FieldType : %s, variant type: %s', [Employee.City.Value,
+                                                                Employee.City.DataType.AsString,
+                                                                VarTypeAsText(VarType(Employee.City.Value))]);
+
   Employee.Commit();
   Employee.Region.Value := 'Podkarpackie';
+  Log('Employee ID: %s => FieldType : %s, variant type: %s', [Employee.EmployeeID.Value,
+                                                              Employee.EmployeeID.DataType.AsString,
+                                                              VarTypeAsText(VarType(Employee.EmployeeID.Value))]);
+  Log('Employee.FirstName: %s => FieldType : %s, variant type: %s', [Employee.FirstName.Value,
+                                                                     Employee.FirstName.DataType.AsString,
+                                                                     VarTypeAsText(VarType(Employee.FirstName.Value))]);
+  Log('Employee.LastName: %s => FieldType : %s, variant type: %s', [Employee.LastName.Value,
+                                                                    Employee.LastName.DataType.AsString,
+                                                                    VarTypeAsText(VarType(Employee.LastName.Value))]);
+  Log('Employee.Country: %s => FieldType : %s, variant type: %s', [Employee.Country.Value,
+                                                                   Employee.Country.DataType.AsString,
+                                                                   VarTypeAsText(VarType(Employee.Country.Value))]);
+  Log('Employee.Region: %s => FieldType : %s, variant type: %s', [Employee.Region.Value,
+                                                                  Employee.Region.DataType.AsString,
+                                                                  VarTypeAsText(VarType(Employee.Region.Value))]);
+  Log('Employee.City: %s => FieldType : %s, variant type: %s', [Employee.City.Value,
+                                                                Employee.City.DataType.AsString,
+                                                                VarTypeAsText(VarType(Employee.City.Value))]);
+  Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
   Employee.Commit();
+  Log('Employee.Commit()');
+  Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
+  LogSeparator();
+  finally
+  lORM.Free;
+  end;
+end;
 
-  Employee := lORM.GetInstance<IEmployees, Integer>(3, conSQLite);
-  i := Employee.EmployeeID.Value;
-  s := Employee.Country.Value;
-  s := Employee.City.Value;
-  Employee.ImmediateCommit := False;
-  Employee.LastName.Value := Employee.LastName.Value + '_test';
-  b := Employee.HasChanges;
-  Employee.Commit();
-  b := Employee.HasChanges;
+procedure TfrmMain.FormShow(Sender: TObject);
+begin
+  pgcMain.ActivePageIndex := 0;
 end;
 
 function TfrmMain.GenerateCode(): string;
@@ -216,10 +276,12 @@ const
   cIntf = '  I%s = interface(ItransfORMEntity)' + sLineBreak +
           '%s' + sLineBreak +
           '  end;';
-  cMeth = '    function %s(): TransfORMField; //type %s';
+  cMeth = '    /// <summary>' + sLineBreak +
+          '    ///   %s type field' + sLineBreak +
+          '    /// </summary>' + sLineBreak +
+          '    function %s(): TransfORMField;';
 var
   s: string;
-
 begin
   metaqryFields.DisableControls;
   try
@@ -227,7 +289,7 @@ begin
   metaqryFields.First;
   while not metaqryFields.Eof do
   begin
-    s := s + Format(cMeth, [metaqryFields.FieldByName('COLUMN_NAME').AsString, metaqryFields.FieldByName('COLUMN_TYPENAME').AsString]);
+    s := s + Format(cMeth, [metaqryFields.FieldByName('COLUMN_TYPENAME').AsString, metaqryFields.FieldByName('COLUMN_NAME').AsString]);
     metaqryFields.Next;
     if not metaqryFields.Eof then
     begin
@@ -238,6 +300,21 @@ begin
   finally
   metaqryFields.EnableControls;
   end;
+end;
+
+procedure TfrmMain.Log(const aStr : string);
+begin
+  mmoLog.Lines.Add(aStr);
+end;
+
+procedure TfrmMain.Log(const aStr : string; const aArgs : array of const);
+begin
+  mmoLog.Lines.Add(Format(aStr, aArgs));
+end;
+
+procedure TfrmMain.LogSeparator();
+begin
+  mmoLog.Lines.Add('- - - - - - - - - - - - - - - - - - - - -');
 end;
 
 procedure TfrmMain.metaqryTablesAfterScroll(DataSet: TDataSet);
@@ -268,7 +345,7 @@ begin
   metaqryPK.ObjectName := flTableName;
   metaqryPK.Open;
 
-  ConfGrid(dbgrd2);
+  //ConfGrid(dbgrd2);
 //  FireDAC.Stan.Intf.TFDDataAttributes
 // COLUMN_ATTRIBUTES z fieldów
 //
@@ -277,6 +354,21 @@ begin
 //    caRowVersion, caInternal, caCalculated, caVolatile, caUnnamed,
 //    caVirtual, caBase, caExpr);
 //  TFDDataAttributes = set of TFDDataAttribute;
+end;
+
+procedure TfrmMain.tmr1Timer(Sender: TObject);
+var
+  lAllocated: Extended;
+  lMem: TMemoryManagerUsageSummary;
+begin
+  GetMemoryManagerUsageSummary(lMem);
+  lAllocated := (lMem.AllocatedBytes + lMem.OverheadBytes)  / 1024;
+  statBar.Panels[1].Text := FloatToStrF(lAllocated, ffFixed, 8, 2);
+end;
+
+function TFieldTypeHelper.AsString(): string;
+begin
+  Result := TEnum.GetName<TFieldType>(self);
 end;
 
 end.

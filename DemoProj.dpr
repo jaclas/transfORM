@@ -1,10 +1,11 @@
 ﻿program DemoProj;
 
 uses
+  FastMM4,
   Vcl.Forms,
   Demo in 'Demo.pas' {frmMain},
   transfORM.Main in 'transfORM.Main.pas',
-  refORM.Impl in 'refORM.Impl.pas',
+  transfORM.Impl in 'transfORM.Impl.pas',
   transfORM.DB in 'transfORM.DB.pas',
   transfORM.Entity in 'transfORM.Entity.pas';
 

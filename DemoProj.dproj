@@ -84,10 +84,9 @@
         </DelphiCompile>
         <DCCReference Include="Demo.pas">
             <Form>frmMain</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="transfORM.Main.pas"/>
-        <DCCReference Include="refORM.Impl.pas"/>
+        <DCCReference Include="transfORM.Impl.pas"/>
         <DCCReference Include="transfORM.DB.pas"/>
         <DCCReference Include="transfORM.Entity.pas"/>
         <BuildConfiguration Include="Base">

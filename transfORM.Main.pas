@@ -15,6 +15,7 @@ uses
   System.Generics.Defaults,
   System.Rtti,
   System.SyncObjs,
+  System.SysUtils,
   System.TypInfo,
 
   TransfORM.DB,
@@ -50,17 +51,16 @@ type
     fChanged : Boolean;
     fFieldName: string;
     fDataType : TFieldType;
-    fORMEntity : ItransfORMEntity;
+    fCommitAction : TAction<TransfORMField>;
     fPrimaryKey : Boolean;
     fColumnAttributes: TFDDataAttributes;
   protected
-    function ORMEntity(): ItransfORMEntity;
     function GetOldValue(): Variant; virtual; abstract;
     function GetValue(): Variant; virtual; abstract;
     procedure SetValue(const aValue: Variant); virtual; abstract;
     procedure ApplyChanges(); virtual; abstract;
   public
-    constructor Create(const aORMEntity: ItransfORMEntity; const aFieldName: string; aDataType: TFieldType; aColumnAttributes:
+    constructor Create(const aCommitAction : TAction<TransfORMField>; const aFieldName: string; aDataType: TFieldType; aColumnAttributes:
         TFDDataAttributes; aPrimaryKey: Boolean);
     property ColumnAttributes: TFDDataAttributes read fColumnAttributes;
     property Changed: Boolean read fChanged;
@@ -77,18 +77,15 @@ type
     fOldData : T;
     fComparer: IEqualityComparer<T>;
   protected
-    function GetAsVariant<T>(const AValue: T): Variant;
+    function GetAsVariant(const AValue: T): Variant;
     procedure SetFromVariant(const aValue : Variant);
     function GetOldValue(): Variant; override;
     function GetValue(): Variant; override;
     procedure SetValue(const aValue: Variant); override;
     procedure ApplyChanges(); override;
   public
-    constructor Create(const aORMEntity: ItransfORMEntity; const aFieldName: string; aDataType: TFieldType; aColumnAttributes:
+    constructor Create(const aCommitAction : TAction<TransfORMField>; const aFieldName: string; aDataType: TFieldType; aColumnAttributes:
         TFDDataAttributes; aPrimaryKey: Boolean; const aValue: T);
-    property Changed: Boolean read fChanged;
-    property FieldName: string read fFieldName;
-    property DataType: TFieldType read fDataType;
     property OldValue: Variant read GetOldValue;
     property Value: Variant read GetValue write SetValue;
   end;
@@ -106,13 +103,13 @@ type
     fCS : TCriticalSection;
     function CreateORMField(const aDBColumnName: string; const aValueField: TField; aColumnAttributes: TFDDataAttributes): TransfORMField;
     function ClonePKFieldWithValue(const aORMField: TransfORMField; aValue: K): TransfORMField;
-
     procedure CreateAndFillORMFields(const aEntity: TInterfaceEntity);
     procedure CreateORMFields(const aEntity: TInterfaceEntity);
     procedure UpdatePrimaryKeyFieldValue();
+    procedure ImmediateCommitField(const aField : TransfORMField);
+    procedure InternalCommit();
     procedure InsertData();
     procedure UpdateData();
-    procedure InternalCommit();
   protected
     function GetAsVariant(const AValue: K): Variant;
     procedure Init(aTypeInfo: PTypeInfo; const aEntity: TInterfaceEntity; const aConnection: TFDConnection);
@@ -123,7 +120,6 @@ type
     constructor Create(aTypeInfo: PTypeInfo; const aEntity: TInterfaceEntity; const aConnection: TFDConnection; aImmediateCommit : Boolean =
         True); overload;
     destructor Destroy(); override;
-
     function PrimaryKeyField(): TransfORMField;
     function GetConnection(): TFDConnection;
     function GetImmediateCommit(): Boolean;
@@ -146,8 +142,8 @@ type
   public
     constructor Create();
     destructor Destroy(); override;
-    function GetInstance<I: IInvokable; K>(const aPrimaryKeyValue: K; const aConnection: TFDConnection; aImmediateCommit : Boolean = True): I;
-    function NewInstance<I: IInvokable; K>(const aConnection: TFDConnection; aImmediateCommit : Boolean = True): I;
+    function GetInstance<I: IInvokable; K>(const aPrimaryKeyValue: K; const aConnection: TFDConnection; aImmediateCommit : Boolean = False): I;
+    function NewInstance<I: IInvokable; K>(const aConnection: TFDConnection; aImmediateCommit : Boolean = False): I;
   end;
 
 
@@ -163,8 +159,7 @@ uses
   Spring.Reflection,
 
   System.Classes,
-  System.Generics.Collections,
-  System.SysUtils;
+  System.Generics.Collections;
 
 
 constructor TTransfORM.Create();
@@ -190,27 +185,27 @@ begin
   end;
 end;
 
-function TTransfORM.GetInstance<I, K>(const aPrimaryKeyValue: K; const aConnection: TFDConnection; aImmediateCommit : Boolean = True): I;
+function TTransfORM.GetInstance<I, K>(const aPrimaryKeyValue: K; const aConnection: TFDConnection; aImmediateCommit : Boolean = False): I;
 var
   lEntity: TInterfaceEntity;
   lTypeInfo : PTypeInfo;
 begin
-  Assert(Assigned(aConnection), 'Missing some kind of connection');
+  Assert(Assigned(aConnection), 'Missing connection');
   lTypeInfo := TypeInfo(I);
   lEntity := GetInterfaceEntity(lTypeInfo, aConnection);
-  TransfORMEntityVirtualInterface<K>.Create(lTypeInfo, lEntity, aConnection, aPrimaryKeyValue)
+  TransfORMEntityVirtualInterface<K>.Create(lTypeInfo, lEntity, aConnection, aPrimaryKeyValue, aImmediateCommit)
                                     .QueryInterface(lTypeInfo.TypeData.GUID, Result);
 end;
 
-function TTransfORM.NewInstance<I, K>(const aConnection: TFDConnection; aImmediateCommit : Boolean = True): I;
+function TTransfORM.NewInstance<I, K>(const aConnection: TFDConnection; aImmediateCommit : Boolean = False): I;
 var
   lEntity: TInterfaceEntity;
   lTypeInfo : PTypeInfo;
 begin
-  Assert(Assigned(aConnection), 'Missing some kind of connection');
+  Assert(Assigned(aConnection), 'Missing connection');
   lTypeInfo := TypeInfo(I);
   lEntity := GetInterfaceEntity(lTypeInfo, aConnection);
-  TransfORMEntityVirtualInterface<K>.Create(lTypeInfo, lEntity, aConnection)
+  TransfORMEntityVirtualInterface<K>.Create(lTypeInfo, lEntity, aConnection, aImmediateCommit)
                                     .QueryInterface(lTypeInfo.TypeData.GUID, Result);
 end;
 
@@ -227,14 +222,13 @@ function TTransfORM.ParseInterface(const aTypeInfo : PTypeInfo; const aConnectio
 var
   lCtx : TRttiContext;
   lDBColumnInfo: TDBColumnInfo;
-  lIntfField: TInterfaceField;
   lMethods: TArray<TRttiMethod>;
   lTableName: string;
   lType: TRttiType;
   lMethod: TRttiMethod;
 
   lDBTableInfo: TDBTableInfo;
-  lIndex: Integer;
+  //lIndex: Integer;
   lMapTo: string;
   lMapToAttr: MapToAttribute;
   lMethodName: string;
@@ -252,7 +246,6 @@ begin
     lTableName := Copy(aTypeInfo.Name, 2);
   end;
   lDBTableInfo := GetDBTableInfo(lTableName, aConnection);
-  //lDBTableInfo.
   Result := TInterfaceEntity.Create(lTableName);
   for lMethod in lMethods do
   begin
@@ -265,7 +258,7 @@ begin
     begin
       lMapTo := lMethodName;
     end;
-    lIndex := lMethod.VirtualIndex;
+    //lIndex := lMethod.VirtualIndex;
     lDBColumnInfo := lDBTableInfo.Column[lMapTo];
     Result.AddField(lMethodName, lMapTo, lDBColumnInfo.PrimaryKey, lDBColumnInfo.ColumnAttributes);
   end;
@@ -326,26 +319,21 @@ begin
   Result := fMapToColumnName;
 end;
 
-constructor TransfORMField.Create(const aORMEntity: ItransfORMEntity; const aFieldName: string; aDataType: TFieldType; aColumnAttributes:
-    TFDDataAttributes; aPrimaryKey: Boolean);
+constructor TransfORMField.Create(const aCommitAction : TAction<TransfORMField>; const aFieldName: string; aDataType: TFieldType;
+    aColumnAttributes: TFDDataAttributes; aPrimaryKey: Boolean);
 begin
   inherited Create();
   fPrimaryKey := aPrimaryKey;
   fFieldName := aFieldName;
   fDataType := aDataType;
   fColumnAttributes := aColumnAttributes;
-  fORMEntity := aORMEntity;
+  fCommitAction := aCommitAction;
 end;
 
-function TransfORMField.ORMEntity(): ItransfORMEntity;
-begin
-  Result := fORMEntity;
-end;
-
-constructor TransfORMField<T>.Create(const aORMEntity: ItransfORMEntity; const aFieldName: string; aDataType: TFieldType;
+constructor TransfORMField<T>.Create(const aCommitAction : TAction<TransfORMField>; const aFieldName: string; aDataType: TFieldType;
     aColumnAttributes: TFDDataAttributes; aPrimaryKey: Boolean; const aValue: T);
 begin
-  inherited Create(aORMEntity, aFieldName, aDataType, aColumnAttributes, aPrimaryKey);
+  inherited Create(aCommitAction, aFieldName, aDataType, aColumnAttributes, aPrimaryKey);
   fComparer := TEqualityComparer<T>.Default;
   fData := aValue;
 end;
@@ -357,7 +345,7 @@ begin
   fChanged := False;
 end;
 
-function TransfORMField<T>.GetAsVariant<T>(const AValue: T): Variant;
+function TransfORMField<T>.GetAsVariant(const AValue: T): Variant;
 var
   lValue: TValue;
 begin
@@ -381,16 +369,16 @@ function TransfORMField<T>.GetOldValue(): Variant;
 begin
   if fChanged then
   begin
-    Result := GetAsVariant<T>(fOldData);
+    Result := GetAsVariant(fOldData);
   end else
   begin
-    Result := GetAsVariant<T>(fData)
+    Result := GetAsVariant(fData)
   end;
 end;
 
 function TransfORMField<T>.GetValue(): Variant;
 begin
-  Result := GetAsVariant<T>(fData);
+  Result := GetAsVariant(fData);
 end;
 
 procedure TransfORMField<T>.SetFromVariant(const aValue : Variant);
@@ -412,10 +400,7 @@ begin
   if not fComparer.Equals(fOldData, fData) then
   begin
     fChanged := True;
-    if ORMEntity.ImmediateCommit then
-    begin
-      ORMEntity.Commit;
-    end;
+    fCommitAction(self);
   end;
 end;
 
@@ -427,7 +412,6 @@ begin
   fPrimaryKeyValue := aPrimaryKeyValue;
   Init(aTypeInfo, aEntity, aConnection);
   fImmediateCommit := aImmediateCommit;
-
   CreateAndFillORMFields(aEntity);
 end;
 
@@ -451,7 +435,7 @@ function TransfORMEntityVirtualInterface<K>.ClonePKFieldWithValue(const aORMFiel
 begin
   if aORMField.PrimaryKey then
   begin
-    Result := TransfORMField<K>.Create(self, aORMField.FieldName, aORMField.DataType, aORMField.ColumnAttributes, True, aValue);
+    Result := TransfORMField<K>.Create(ImmediateCommitField, aORMField.FieldName, aORMField.DataType, aORMField.ColumnAttributes, True, aValue);
   end else
   begin
     raise Exception.Create('This is not a PK field!');
@@ -494,33 +478,33 @@ begin
   lPrimaryKey := SameText(aDBColumnName, fPrimaryKeyName);
   case aValueField.DataType of
   // as ItransfORMEntity
-  ftSmallint : Result := TransfORMField<SmallInt>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsInteger);
-  ftShortint : Result := TransfORMField<ShortInt>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsInteger);
-  ftByte : Result := TransfORMField<Byte>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsInteger);
-  ftWord : Result := TransfORMField<Word>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsInteger);
+  ftSmallint : Result := TransfORMField<SmallInt>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsInteger);
+  ftShortint : Result := TransfORMField<ShortInt>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsInteger);
+  ftByte : Result := TransfORMField<Byte>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsInteger);
+  ftWord : Result := TransfORMField<Word>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsInteger);
   ftAutoInc,
-  ftInteger : Result := TransfORMField<Integer>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsInteger);
-  ftLargeint : Result := TransfORMField<Int64>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsLargeInt);
-  ftLongWord : Result := TransfORMField<LongWord>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsLongWord);
+  ftInteger : Result := TransfORMField<Integer>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsInteger);
+  ftLargeint : Result := TransfORMField<Int64>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsLargeInt);
+  ftLongWord : Result := TransfORMField<LongWord>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsLongWord);
   ftBCD,
-  ftFMTBcd: Result := TransfORMField<Currency>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsCurrency);
-  ftCurrency : Result := TransfORMField<Currency>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsCurrency);
-  TFieldType.ftSingle : Result := TransfORMField<Single>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsSingle);
-  ftFloat : Result := TransfORMField<Double>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsFloat);
+  ftFMTBcd: Result := TransfORMField<Currency>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsCurrency);
+  ftCurrency : Result := TransfORMField<Currency>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsCurrency);
+  TFieldType.ftSingle : Result := TransfORMField<Single>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsSingle);
+  ftFloat : Result := TransfORMField<Double>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsFloat);
   ftDateTime,
   ftDate,
-  ftTime : Result := TransfORMField<TDate>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsDateTime);
+  ftTime : Result := TransfORMField<TDate>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsDateTime);
   ftTimeStamp,
-  ftTimeStampOffset : Result := TransfORMField<TSQLTimeStamp>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsSQLTimeStamp);
-  ftBoolean : Result := TransfORMField<Boolean>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsBoolean);
+  ftTimeStampOffset : Result := TransfORMField<TSQLTimeStamp>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsSQLTimeStamp);
+  ftBoolean : Result := TransfORMField<Boolean>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsBoolean);
   ftString,
   ftMemo,
   ftBlob,
   ftWideMemo,
   ftFixedChar,
   ftFixedWideChar,
-  ftWideString: Result := TransfORMField<string>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsString);
-  ftVariant : Result := TransfORMField<Variant>.Create(self, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsVariant);
+  ftWideString: Result := TransfORMField<string>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsString);
+  ftVariant : Result := TransfORMField<Variant>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsVariant);
   else
     begin
       raise Exception.CreateFmt('Unknown data type: %s for column: %s', [Spring.TEnum.GetName<TFieldType>(aValueField.DataType), aDBColumnName]);
@@ -681,6 +665,20 @@ begin
     if lField.Changed then Exit(True);
   end;
   Result := False;
+end;
+
+procedure TransfORMEntityVirtualInterface<K>.ImmediateCommitField(const aField : TransfORMField);
+begin
+  if fImmediateCommit then
+  begin
+    if fInsertMode then
+    begin
+      InsertData();
+    end else
+    begin
+      UpdateData();
+    end;
+  end;
 end;
 
 procedure TransfORMEntityVirtualInterface<K>.Init(aTypeInfo: PTypeInfo; const aEntity: TInterfaceEntity; const aConnection: TFDConnection);
