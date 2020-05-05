@@ -84,15 +84,16 @@ object frmMain: TfrmMain
     Top = 249
     Width = 726
     Height = 321
-    ActivePage = tsTests
+    ActivePage = tsCode
     Align = alClient
     TabOrder = 3
-    ExplicitTop = 239
-    ExplicitHeight = 331
     object tsData: TTabSheet
       Caption = 'Data'
       ImageIndex = 1
-      ExplicitHeight = 425
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object dbgrdData: TDBGrid
         AlignWithMargins = True
         Left = 3
@@ -111,7 +112,10 @@ object frmMain: TfrmMain
     end
     object tsMeta: TTabSheet
       Caption = 'Meta'
-      ExplicitHeight = 425
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object dbgrdFields: TDBGrid
         AlignWithMargins = True
         Left = 3
@@ -228,7 +232,10 @@ object frmMain: TfrmMain
     object tsTests: TTabSheet
       Caption = 'Tests'
       ImageIndex = 3
-      ExplicitHeight = 425
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object btnTestA: TBitBtn
         Left = 10
         Top = 10
@@ -264,18 +271,23 @@ object frmMain: TfrmMain
         Height = 250
         Margins.Top = 40
         Align = alClient
+        Font.Charset = EASTEUROPE_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'JetBrains Mono'
+        Font.Style = []
+        ParentFont = False
         ScrollBars = ssBoth
         TabOrder = 3
-        ExplicitTop = 41
-        ExplicitHeight = 341
       end
     end
     object tsCode: TTabSheet
       Caption = 'Code'
       ImageIndex = 2
-      ExplicitLeft = 3
-      ExplicitTop = 22
-      ExplicitHeight = 303
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object mmoCode: TMemo
         AlignWithMargins = True
         Left = 3
@@ -284,9 +296,14 @@ object frmMain: TfrmMain
         Height = 250
         Margins.Top = 40
         Align = alClient
+        Font.Charset = EASTEUROPE_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -12
+        Font.Name = 'JetBrains Mono'
+        Font.Style = []
+        ParentFont = False
         ScrollBars = ssVertical
         TabOrder = 1
-        ExplicitTop = 50
       end
       object btnGenerate: TBitBtn
         Left = 10
@@ -332,13 +349,11 @@ object frmMain: TfrmMain
       item
         Width = 50
       end>
-    ExplicitTop = 610
   end
   object conSQLite: TFDConnection
     Params.Strings = (
       'ConnectionDef=SQLite_Demo')
     ConnectedStoredUsage = []
-    Connected = True
     LoginPrompt = False
     Left = 98
     Top = 18
@@ -357,7 +372,6 @@ object frmMain: TfrmMain
       end>
   end
   object metaqryTables: TFDMetaInfoQuery
-    Active = True
     AfterScroll = metaqryTablesAfterScroll
     Connection = conSQLite
     Left = 98

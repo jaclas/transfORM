@@ -86,9 +86,7 @@ type
   end;
 
   IEmployees = interface(ItransfORMEntity)
-    /// <summary>
-    ///   INTEGER type field
-    /// </summary>
+    /// <summary>INTEGER type field </summary>
     function EmployeeID(): TransfORMField;
     function LastName(): TransfORMField;
     function FirstName(): TransfORMField;
@@ -139,21 +137,29 @@ procedure TfrmMain.btnTestAClick(Sender: TObject);
 var
   lORM : TTransfORM;
   Employee: IEmployees;
+  lEmployeeID: Integer;
 begin
   lORM := TTransfORM.Create();
   try
-  Employee := lORM.GetInstance<IEmployees, Integer>(3, conSQLite);
+  lEmployeeID := 3;
+  Employee := lORM.GetInstance<IEmployees, Integer>(lEmployeeID, conSQLite);
+
   Log('Test A');
-  Log('Employee.EmployeeID: %s => FieldType : %s, variant type: %s', [Employee.EmployeeID.Value,
+  Log('Employee.EmployeeID: %s ==> FieldType : %s, variant type: %s', [Employee.EmployeeID.Value,
                                                               Employee.EmployeeID.DataType.AsString,
                                                               VarTypeAsText(VarType(Employee.EmployeeID.Value))]);
-  Log('Employee.Country: %s => FieldType : %s, variant type: %s', [Employee.Country.Value,
-                                                                   Employee.Country.DataType.AsString,
-                                                                   VarTypeAsText(VarType(Employee.Country.Value))]);
-
-  Log('Employee.City: %s => FieldType : %s, variant type: %s', [Employee.City.Value,
+  Log('Employee.FirstName: %s ==> FieldType : %s, variant type: %s', [Employee.FirstName.Value,
+                                                                     Employee.FirstName.DataType.AsString,
+                                                                     VarTypeAsText(VarType(Employee.FirstName.Value))]);
+  Log('Employee.LastName: %s ==> FieldType : %s, variant type: %s', [Employee.LastName.Value,
+                                                                    Employee.LastName.DataType.AsString,
+                                                                    VarTypeAsText(VarType(Employee.LastName.Value))]);
+  Log('Employee.City: %s ==> FieldType : %s, variant type: %s', [Employee.City.Value,
                                                                 Employee.City.DataType.AsString,
                                                                 VarTypeAsText(VarType(Employee.City.Value))]);
+  Log('Employee.Country: %s ==> FieldType : %s, variant type: %s', [Employee.Country.Value,
+                                                                   Employee.Country.DataType.AsString,
+                                                                   VarTypeAsText(VarType(Employee.Country.Value))]);
   LogSeparator();
   finally
   lORM.Free;
@@ -164,28 +170,32 @@ procedure TfrmMain.btnTestBClick(Sender: TObject);
 var
   lORM : TTransfORM;
   Employee: IEmployees;
+  lEmployeeID: Integer;
 begin
   lORM := TTransfORM.Create();
   try
-  Employee := lORM.GetInstance<IEmployees, Integer>(3, conSQLite);
+  lEmployeeID := 5;
+  Employee := lORM.GetInstance<IEmployees, Integer>(lEmployeeID, conSQLite);
   Log('Test B');
-  Log('Employee ID: %s => FieldType : %s, variant type: %s', [Employee.EmployeeID.Value,
+  Log('Employee.EmployeeID: %s ==> FieldType : %s, variant type: %s', [Employee.EmployeeID.Value,
                                                               Employee.EmployeeID.DataType.AsString,
                                                               VarTypeAsText(VarType(Employee.EmployeeID.Value))]);
-  Log('Employee.Country: %s => FieldType : %s, variant type: %s', [Employee.Country.Value,
+  Log('Employee.Country: %s ==> FieldType : %s, variant type: %s', [Employee.Country.Value,
                                                                    Employee.Country.DataType.AsString,
                                                                    VarTypeAsText(VarType(Employee.Country.Value))]);
 
-  Log('Employee.City: %s => FieldType : %s, variant type: %s', [Employee.City.Value,
+  Log('Employee.City: %s ==> FieldType : %s, variant type: %s', [Employee.City.Value,
                                                                 Employee.City.DataType.AsString,
                                                                 VarTypeAsText(VarType(Employee.City.Value))]);
   Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
 
   Employee.City.Value := Employee.City.Value + Random(1000).ToString;
-
-  Log('Employee City: %s => FieldType : %s, variant type: %s', [Employee.City.Value,
+  Log('Employee.City.Value := Employee.City.Value + Random(1000).ToString;');
+  Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
+  Log('Employee City: %s ==> FieldType : %s, variant type: %s', [Employee.City.Value,
                                                                 Employee.City.DataType.AsString,
                                                                 VarTypeAsText(VarType(Employee.City.Value))]);
+  Employee.Commit();
   Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
   LogSeparator();
   finally
@@ -204,59 +214,62 @@ begin
   lORM := TTransfORM.Create();
   try
   Employee := lORM.NewInstance<IEmployees, Integer>(conSQLite);
-  Employee.FirstName.Value := 'Józef';
-  Employee.LastName.Value := 'Pampkin';
+  Employee.FirstName.Value := 'Łucjan';
+  Employee.LastName.Value := 'Brzęczyszczyński';
   Employee.City.Value := 'Miasteczko';
   Employee.Region.Value := 'Mazowieckie';
   Employee.Country.Value := 'Polska';
   Log('Test C');
-  Log('Employee ID: %s => FieldType : %s, variant type: %s', [Employee.EmployeeID.Value,
+  Log('Employee.EmployeeID: %s ==> FieldType : %s, variant type: %s', [Employee.EmployeeID.Value,
                                                               Employee.EmployeeID.DataType.AsString,
                                                               VarTypeAsText(VarType(Employee.EmployeeID.Value))]);
-  Log('Employee.FirstName: %s => FieldType : %s, variant type: %s', [Employee.FirstName.Value,
+  Log('Employee.FirstName: %s ==> FieldType : %s, variant type: %s', [Employee.FirstName.Value,
                                                                      Employee.FirstName.DataType.AsString,
                                                                      VarTypeAsText(VarType(Employee.FirstName.Value))]);
-  Log('Employee.LastName: %s => FieldType : %s, variant type: %s', [Employee.LastName.Value,
+  Log('Employee.LastName: %s ==> FieldType : %s, variant type: %s', [Employee.LastName.Value,
                                                                     Employee.LastName.DataType.AsString,
                                                                     VarTypeAsText(VarType(Employee.LastName.Value))]);
-  Log('Employee.Country: %s => FieldType : %s, variant type: %s', [Employee.Country.Value,
+  Log('Employee.Country: %s ==> FieldType : %s, variant type: %s', [Employee.Country.Value,
                                                                    Employee.Country.DataType.AsString,
                                                                    VarTypeAsText(VarType(Employee.Country.Value))]);
-  Log('Employee.Region: %s => FieldType : %s, variant type: %s', [Employee.Region.Value,
+  Log('Employee.Region: %s ==> FieldType : %s, variant type: %s', [Employee.Region.Value,
                                                                   Employee.Region.DataType.AsString,
                                                                   VarTypeAsText(VarType(Employee.Region.Value))]);
-  Log('Employee.City: %s => FieldType : %s, variant type: %s', [Employee.City.Value,
+  Log('Employee.City: %s ==> FieldType : %s, variant type: %s', [Employee.City.Value,
                                                                 Employee.City.DataType.AsString,
                                                                 VarTypeAsText(VarType(Employee.City.Value))]);
   Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
 
   Employee.City.Value := Employee.City.Value + Random(1000).ToString;
 
-  Log('Employee City: %s => FieldType : %s, variant type: %s', [Employee.City.Value,
+  Log('Employee City: %s ==> FieldType : %s, variant type: %s', [Employee.City.Value,
                                                                 Employee.City.DataType.AsString,
                                                                 VarTypeAsText(VarType(Employee.City.Value))]);
 
   Employee.Commit();
+  Log('Employee.Commit()');
+  Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
+  Log('Employee.Region.Value := ''Podkarpackie'';');
   Employee.Region.Value := 'Podkarpackie';
-  Log('Employee ID: %s => FieldType : %s, variant type: %s', [Employee.EmployeeID.Value,
+  Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
+  Log('Employee.EmployeeID: %s ==> FieldType : %s, variant type: %s', [Employee.EmployeeID.Value,
                                                               Employee.EmployeeID.DataType.AsString,
                                                               VarTypeAsText(VarType(Employee.EmployeeID.Value))]);
-  Log('Employee.FirstName: %s => FieldType : %s, variant type: %s', [Employee.FirstName.Value,
+  Log('Employee.FirstName: %s ==> FieldType : %s, variant type: %s', [Employee.FirstName.Value,
                                                                      Employee.FirstName.DataType.AsString,
                                                                      VarTypeAsText(VarType(Employee.FirstName.Value))]);
-  Log('Employee.LastName: %s => FieldType : %s, variant type: %s', [Employee.LastName.Value,
+  Log('Employee.LastName: %s ==> FieldType : %s, variant type: %s', [Employee.LastName.Value,
                                                                     Employee.LastName.DataType.AsString,
                                                                     VarTypeAsText(VarType(Employee.LastName.Value))]);
-  Log('Employee.Country: %s => FieldType : %s, variant type: %s', [Employee.Country.Value,
+  Log('Employee.Country: %s ==> FieldType : %s, variant type: %s', [Employee.Country.Value,
                                                                    Employee.Country.DataType.AsString,
                                                                    VarTypeAsText(VarType(Employee.Country.Value))]);
-  Log('Employee.Region: %s => FieldType : %s, variant type: %s', [Employee.Region.Value,
+  Log('Employee.Region: %s ==> FieldType : %s, variant type: %s', [Employee.Region.Value,
                                                                   Employee.Region.DataType.AsString,
                                                                   VarTypeAsText(VarType(Employee.Region.Value))]);
-  Log('Employee.City: %s => FieldType : %s, variant type: %s', [Employee.City.Value,
+  Log('Employee.City: %s ==> FieldType : %s, variant type: %s', [Employee.City.Value,
                                                                 Employee.City.DataType.AsString,
                                                                 VarTypeAsText(VarType(Employee.City.Value))]);
-  Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
   Employee.Commit();
   Log('Employee.Commit()');
   Log('Employee.HasChanges(): %s', [BoolToStr(Employee.HasChanges, True)]);
@@ -276,9 +289,7 @@ const
   cIntf = '  I%s = interface(ItransfORMEntity)' + sLineBreak +
           '%s' + sLineBreak +
           '  end;';
-  cMeth = '    /// <summary>' + sLineBreak +
-          '    ///   %s type field' + sLineBreak +
-          '    /// </summary>' + sLineBreak +
+  cMeth = '    /// <summary>%s type field</summary>' + sLineBreak +
           '    function %s(): TransfORMField;';
 var
   s: string;
@@ -314,7 +325,7 @@ end;
 
 procedure TfrmMain.LogSeparator();
 begin
-  mmoLog.Lines.Add('- - - - - - - - - - - - - - - - - - - - -');
+  mmoLog.Lines.Add('---------------------');
 end;
 
 procedure TfrmMain.metaqryTablesAfterScroll(DataSet: TDataSet);

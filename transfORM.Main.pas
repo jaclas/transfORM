@@ -58,6 +58,8 @@ type
     function GetOldValue(): Variant; virtual; abstract;
     function GetValue(): Variant; virtual; abstract;
     procedure SetValue(const aValue: Variant); virtual; abstract;
+    function GetValueAsBytes(): TBytes; virtual; abstract;
+    procedure SetValueAsBytes(const aValue: TBytes); virtual; abstract;
     procedure ApplyChanges(); virtual; abstract;
   public
     constructor Create(const aCommitAction : TAction<TransfORMField>; const aFieldName: string; aDataType: TFieldType; aColumnAttributes:
@@ -69,6 +71,7 @@ type
     property OldValue: Variant read GetOldValue;
     property PrimaryKey: Boolean read fPrimaryKey;
     property Value: Variant read GetValue write SetValue;
+    property ValueAsBytes: TBytes read GetValueAsBytes write SetValueAsBytes;
   end;
 
   TransfORMField<T> = class(TransfORMField)
@@ -82,6 +85,8 @@ type
     function GetOldValue(): Variant; override;
     function GetValue(): Variant; override;
     procedure SetValue(const aValue: Variant); override;
+    function GetValueAsBytes(): TBytes; override;
+    procedure SetValueAsBytes(const aValue: TBytes); override;
     procedure ApplyChanges(); override;
   public
     constructor Create(const aCommitAction : TAction<TransfORMField>; const aFieldName: string; aDataType: TFieldType; aColumnAttributes:
@@ -378,7 +383,47 @@ end;
 
 function TransfORMField<T>.GetValue(): Variant;
 begin
-  Result := GetAsVariant(fData);
+  if fDataType in [ftBlob, ftGraphic..ftTypedBinary,ftOraBlob,ftOraClob] then
+  begin
+    Result := 'try use GetValueAsBytes() method for this field';
+  end else
+  begin
+    Result := GetAsVariant(fData);
+  end;
+end;
+
+function TransfORMField<T>.GetValueAsBytes(): TBytes;
+var
+  lValue: TValue;
+begin
+  if fDataType in [ftBlob, ftGraphic..ftTypedBinary,ftOraBlob,ftOraClob] then
+  begin
+    TValue.Make(@fData, TypeInfo(TBytes), lValue);
+    lValue.TryAsType<TBytes>(Result);
+  end else
+  begin
+    raise Exception.CreateFmt('Field of %s type can''t be accessed by this method :-)', [TEnum.GetName<TFieldType>(fDataType)]);
+  end;
+end;
+
+procedure TransfORMField<T>.SetValueAsBytes(const aValue: TBytes);
+var
+  lValue: TValue;
+begin
+  if fDataType in [ftBlob, ftGraphic..ftTypedBinary,ftOraBlob,ftOraClob] then
+  begin
+    fOldData := fData;
+    lValue :=  TValue.From<TBytes>(aValue);
+    fData := lValue.AsType<T>();
+    if not fComparer.Equals(fOldData, fData) then
+    begin
+      fChanged := True;
+      fCommitAction(self);
+    end;
+  end else
+  begin
+    raise Exception.CreateFmt('Field of %s type can''t be accessed by this method :-)', [TEnum.GetName<TFieldType>(fDataType)]);
+  end;
 end;
 
 procedure TransfORMField<T>.SetFromVariant(const aValue : Variant);
@@ -497,9 +542,10 @@ begin
   ftTimeStamp,
   ftTimeStampOffset : Result := TransfORMField<TSQLTimeStamp>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsSQLTimeStamp);
   ftBoolean : Result := TransfORMField<Boolean>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsBoolean);
+  ftBlob,
+  ftGraphic: Result := TransfORMField<TBytes>.Create(ImmediateCommitField, aDBColumnName, aValueField.DataType, aColumnAttributes, lPrimaryKey, aValueField.AsBytes);
   ftString,
   ftMemo,
-  ftBlob,
   ftWideMemo,
   ftFixedChar,
   ftFixedWideChar,
