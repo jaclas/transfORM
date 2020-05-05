@@ -3,6 +3,7 @@
 interface
 
 uses
+  FireDAC.Comp.Client,
   FireDAC.Stan.Intf,
 
   Spring.Collections;
