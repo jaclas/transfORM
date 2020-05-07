@@ -62,4 +62,4 @@ The library uses: Spring4D, FireDAC
 
 ### If you like what I do, support me :-)
 
-[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=79WTCNMJJ6C36&source=url)
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=79WTCNMJJ6C36&item_name=If+you+like+what+I+do,+support+me+%3A-%29&source=url)
